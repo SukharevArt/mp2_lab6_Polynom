@@ -10,7 +10,7 @@ struct TNode {
 		pNext = nullptr;
 	}
 	TNode(T a) {
-		val = T;
+		val = a;
 		pNext = nullptr;
 	}
 };
@@ -55,32 +55,31 @@ public:
 		}
 		pLast = pPrev;
 	}
-	TList& operator=( TList& a) {
+	TList operator=( TList& a) {
 		while (pFirst != pStop) {
 			pLast = pFirst;
 			pFirst = pFirst->pNext;
 			delete pLast;
 		}
-		if (a.pStop == nullptr)
-			pStop = nullptr;
-		else {
-			pStop = new TNode<T>(pStop->val);
-		}
+		pStop = nullptr;
 		pFirst = pCurr = pPrev = pLast = pStop;
 		len = a.len;
+		a.reset();
 		if (len) {
-			pFirst = new TNode<T>(getCurr());
+			pFirst = new TNode<T>(a.getCurr());
 			pCurr = pFirst;
-			pFirst = pStop;
+			pFirst->pNext = pStop;
 			a.goNext();
 		}
 		for (; !a.isEnd(); a.goNext()) {
 			pPrev = pCurr;
-			pCurr = new TNode<T>(getCurr());
+			pCurr = new TNode<T>(a.getCurr());
 			pPrev->pNext = pCurr;
 			pCurr->pNext = pStop;
 		}
 		pLast = pPrev;
+		pCurr = pFirst;
+		pPrev = pStop;
 		return *this;
 	}
 
@@ -95,8 +94,8 @@ public:
 		pFirst = newnode;
 		if (len == 1) {
 			pLast = newnode;
-			reset();
 		}
+		reset();
 	}
 	void insertLast(T value) {
 		if (len == 0) {
@@ -145,7 +144,7 @@ public:
 		if (len == 0)
 			throw "Empty_List";
 		TNode<T>* tnode = pFirst;
-		if (pCurr = pFirst) {
+		if (pCurr == pFirst) {
 			pCurr = pFirst->pNext;
 		}
 		pFirst = pFirst->pNext;
@@ -202,7 +201,7 @@ protected:
 	TNode<T>* pHead;
 public:
 	THeadList() {
-		TMonom m(0, 0, -1);
+		TMonom m(-1, 0, 0);
 		pHead = new TNode<T>;
 		pHead->val = m;
 		pHead->pNext = pHead;
@@ -219,28 +218,56 @@ public:
 		TList::insertFirst(a);
 		pHead->pNext = pFirst;
 	}
+	void insertCurr(T value) {
+		if (pPrev == pStop) {
+			insertFirst(value);
+			return;
+		}
+		if (pCurr == pStop) {
+			insertLast(value);
+			return;
+		}
+		TNode<T>* newnode = new TNode<T>;
+		newnode->val = value;
+		newnode->pNext = pCurr;
+		len++;
+		pCurr = newnode;
+		pPrev->pNext = newnode;
+	}
 	void delFirst() {
 		TList::delFirst();
 		pHead->pNext = pFirst;
 	}
+	void delCurr() {
+		if (pCurr == pStop)
+			throw "Wrong_position";
+		if (pCurr == pFirst) {
+			delFirst();
+			return;
+		}
+		if (pCurr == pLast) {
+			pLast = pPrev;
+		}
+		TNode<T>* tnode = pCurr;
+		pCurr = pCurr->pNext;
+		delete tnode;
+		len--;
+		pPrev->pNext = pCurr;
+	}
 };
 
-class TPolinom : public THeadList<TMonom> {
+class TPolynom : public THeadList<TMonom> {
 public:
-	TPolinom() : THeadList<TMonom>() {
-		TMonom m(0, 0, -1);
-		pHead->val = m;
+	TPolynom() : THeadList<TMonom>() {
 	}
-	TPolinom(TPolinom& cp) {
+	TPolynom(TPolynom& cp) {
 		pHead->val = TMonom(0, 0, -1);
 		for (cp.reset(); !cp.isEnd(); cp.goNext()) {
 			insertLast(cp.getCurr());
 		}
 	}
 	void addMonom(TMonom& a) {
-		if (isEnd()||a > getCurr()) {
-			reset();
-		}
+		reset();
 		while (a < getCurr())
 			goNext();
 		if (a == getCurr()) {
@@ -253,13 +280,123 @@ public:
 			delCurr();
 		}
 	}
-	TPolinom operator+(TPolinom& a) {
-		TPolinom nw(a);
-		for (reset(); !isEnd(); goNext())
-			nw.addMonom(getCurr());
+	TPolynom operator+(TPolynom& a) {
+		TPolynom nw(a);
+		reset();
+		nw.reset();
+		while (!isEnd()) {
+			if (nw.getCurr() > getCurr()) {
+				nw.goNext();
+			}
+			else {
+				if (nw.getCurr() == getCurr()) {
+					nw.pCurr->val.coeff += pCurr->val.coeff;
+				}
+				else {
+					nw.insertCurr(getCurr());
+				}
+				if (nw.getCurr().coeff == 0) {
+					nw.delCurr();
+				}
+				goNext();
+			}
+		}
 		return nw;
 	}
-	friend ostream& operator<<(ostream& sout, TPolinom& a) {
+	TPolynom operator=(TPolynom& a) {
+		while (pFirst != pStop) {
+			while (pFirst != pStop) {
+				TNode<TMonom>* b;
+				b = pFirst;
+				pFirst = pFirst->pNext;
+				delete b;
+			}
+		}
+		pFirst = pCurr = pPrev = pLast = pStop;
+		len = a.len;
+		a.reset();
+		if (len) {
+			pFirst = new TNode<TMonom>(a.getCurr());
+			pCurr = pFirst;
+			pFirst->pNext = pStop;
+			a.goNext();
+		}
+		for (; !a.isEnd(); a.goNext()) {
+			pPrev = pCurr;
+			pCurr = new TNode<TMonom>(a.getCurr());
+			pPrev->pNext = pCurr;
+			pCurr->pNext = pStop;
+		}
+		pLast = pPrev;
+		pCurr = pFirst;
+		pPrev = pStop;
+		return *this;
+	}
+	TPolynom operator-(TPolynom& a) {
+		TPolynom nw(a*(-1));
+		reset();
+		nw.reset();
+		while (!isEnd()) {
+			if (nw.getCurr() > getCurr()) {
+				nw.goNext();
+			}
+			else {
+				if (nw.getCurr() == getCurr()) {
+					nw.pCurr->val.coeff += pCurr->val.coeff;
+				}
+				else {
+					nw.insertCurr(getCurr());
+				}
+				if (nw.getCurr().coeff == 0) {
+					nw.delCurr();
+				}
+				goNext();
+			}
+		}
+		return nw;
+	}
+	TPolynom operator*(int a) {
+		TPolynom e(*this);
+		for (e.reset(); !e.isEnd(); e.goNext()) {
+			e.pCurr->val.coeff *= a;
+		}
+		return e;
+	}
+	TPolynom operator*(double a) {
+		TPolynom e(*this);
+		for (e.reset(); !e.isEnd(); e.goNext()) {
+			e.pCurr->val.coeff *= a;
+		}
+		return e;
+	}
+	bool operator==(const TPolynom& a)const {
+		if (len != a.len) {
+			return false;
+		}
+		TNode<TMonom> *tt=pFirst, *aa=a.pFirst;
+		for (int i = 0; i < len ; i++ ) {
+			if (tt->val != aa->val|| tt->val.coeff != aa->val.coeff)
+				return false;
+			tt = tt->pNext;
+			aa = aa->pNext;
+		}
+		return true;
+	}
+	bool operator!=(const TPolynom& a)const {
+		if (len != a.len) {
+			return true;
+		}
+		TNode<TMonom> *tt=pFirst, *aa=a.pFirst;
+		for (int i = 0; i < len ; i++ ) {
+			if (tt->val != aa->val || tt->val.coeff != aa->val.coeff)
+				return true;
+			tt = tt->pNext;
+			aa = aa->pNext;
+		}
+		return false;
+	}
+
+	friend std::ostream& operator<<(std::ostream& sout, TPolynom& a) {
 		a.reset();
 		if (a.isEnd()) {
 			sout << 0;

@@ -1,6 +1,7 @@
 #pragma once
 #include<iostream>
 
+
 struct TMonom {
 	double coeff;
 	int x, y, z;
@@ -45,7 +46,7 @@ struct TMonom {
 	bool operator>(const TMonom& a) const {
 		return !(*this < a || *this == a);
 	}
-	friend ostream& operator<<(ostream& sout, const TMonom& a) {	
+	friend std::ostream& operator<<(std::ostream& sout, const TMonom& a) {	
 		sout << a.coeff;
 		if (a.x != 0)
 			sout << "x^" << a.x;
@@ -70,11 +71,19 @@ struct TMonom {
 		return nw;
 	}
 	TMonom operator*(const TMonom& a) {
-		TMonom nw(a.coeff*coeff,a.x+x,a.y+y,a.z+z);
+		TMonom nw(a.x+x,a.y+y,a.z+z, a.coeff * coeff);
+		return nw;
+	}
+	TMonom operator*(const int a) {
+		TMonom nw(x,y,z, a * coeff);
+		return nw;
+	}
+	TMonom operator*(const double a) {
+		TMonom nw(x,y,z, a * coeff);
 		return nw;
 	}
 	TMonom operator/(const TMonom& a) {
-		TMonom nw(coeff/a.coeff,-a.x+x,-a.y+y,-a.z+z);
+		TMonom nw(-a.x+x,-a.y+y,-a.z+z, coeff / a.coeff);
 		return nw;
 	}
 	
